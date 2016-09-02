@@ -1,4 +1,3 @@
-const currentVersion = 'v1';
 
 // Listen for the install event
 self.addEventListener('install', function(event){
@@ -7,7 +6,7 @@ self.addEventListener('install', function(event){
     // https://developer.mozilla.org/en-US/docs/Web/API/ExtendableEvent/waitUntil
     event.waitUntil(
         // create or retrieve named cache
-        caches.open(currentVersion).then(cache => {
+        caches.open('v1').then(cache => {
             // The addAll() returns a promise
             // which is rejected if any of the requests for dependencies fails
             // indicating that this ServiceWorker failed to install
@@ -39,7 +38,7 @@ self.addEventListener('fetch', function(event){
         }
 
         return cachedResponse || fetch(event.request).then(response => {
-            return caches.open(currentVersion).then(cache => {
+            return caches.open('v1').then(cache => {
                 // We have to store the clone of the response
                 // because each response can be read only once, then it is discarded
                 cache.put(event.request, response.clone());
@@ -51,4 +50,23 @@ self.addEventListener('fetch', function(event){
             return caches.match('/imgs/dr-evil.gif');
         });
     }));   
+});
+
+// Delete old caches to free up disk space when new version of app becomes active
+// But do not delete cache for our current version
+self.addEventListener('activate', function(event){
+    const whiteList = ['v1'];
+
+    // pro-long the event's lifetime until cache is cleared
+    event.waitUntil(
+        caches.keys().then(keys => {
+            return Promise.all(keys.map(key => {
+                if (whiteList.indexOf(key) == -1) {
+                    // caches.delete() returns a promise - https://developer.mozilla.org/en-US/docs/Web/API/Cache/delete
+                    return caches.delete(key);
+                }
+            }));
+        })
+    );
+    
 });
