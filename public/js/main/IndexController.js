@@ -12,9 +12,44 @@ export default function IndexController(container) {
 }
 
 IndexController.prototype._registerServiceWorker = function(){
+  const indexController = this;
+
   if (navigator.serviceWorker) {
     navigator.serviceWorker.register('/sw.js').then(function(registration) {
+      debugger
       console.log('registered a service worker');
+
+      // The API described in the Offline-first application course seems to be bit out of date
+      // or not yet supported.
+      // It works in Chrome, but not FF and IE
+
+      // If the controller is null, then it means that the page was either hard-refreshed (shift F5) 
+      // or there is no active worker 
+      if (!navigator.serviceWorker.controller) {
+        return;
+      }
+
+      // If there is new version of the SW, then notify the user about it
+      // so he can start using it immediatelly
+      if (registration.waiting) {
+        indexController._updateReady();
+        return;
+      }
+
+      // If it is installing, then track the progress of the installation
+      if (registration.installing) {
+        debugger
+        indexController._trackInstalling(registration.installing);
+        return;
+      }
+
+      // otherwise wait for new updates to arrive
+      registration.addEventListener('updatefound', function() {
+        debugger
+        indexController._trackInstalling(registration.installing);
+        return; 
+      });
+
     }).catch(function(err) {
       console.error('error registering service worker');
     });
@@ -73,4 +108,30 @@ IndexController.prototype._openSocket = function() {
 IndexController.prototype._onSocketMessage = function(data) {
   var messages = JSON.parse(data);
   this._postsView.addPosts(messages);
+};
+
+/**
+ * Notify the user about new version of SW
+ */
+IndexController.prototype._updateReady = function(){
+  debugger
+  var toast = this._toastsView.show("New updates available", {
+    buttons: ['whatever ...']
+  })
+};
+
+
+/**
+ * Track the progress of installation of SW
+ */
+IndexController.prototype._trackInstalling = function(serviceWorker){
+  debugger;
+
+  var indexController = this;
+
+  serviceWorker.addEventListener('statechange', function(){
+    if (serviceWorker.state == 'installed') {
+      indexController._updateReady();
+    }
+  });
 };

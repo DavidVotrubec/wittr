@@ -1,4 +1,4 @@
-const currentVersion = 'v7';
+const currentVersion = 'v12';
 
 // Listen for the install event
 self.addEventListener('install', function(event){
