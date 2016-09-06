@@ -1,6 +1,7 @@
 import PostsView from './views/Posts';
 import ToastsView from './views/Toasts';
 import idb from 'idb';
+///
 
 export default function IndexController(container) {
   this._container = container;
@@ -16,7 +17,6 @@ IndexController.prototype._registerServiceWorker = function(){
 
   if (navigator.serviceWorker) {
     navigator.serviceWorker.register('/sw.js').then(function(registration) {
-      debugger
       console.log('registered a service worker');
 
       // The API described in the Offline-first application course seems to be bit out of date
@@ -38,16 +38,25 @@ IndexController.prototype._registerServiceWorker = function(){
 
       // If it is installing, then track the progress of the installation
       if (registration.installing) {
-        debugger
         indexController._trackInstalling(registration.installing);
         return;
       }
 
       // otherwise wait for new updates to arrive
       registration.addEventListener('updatefound', function() {
-        debugger
         indexController._trackInstalling(registration.installing);
         return; 
+      });
+
+      registration.addEventListener('controllerchange', function(){
+        debugger
+        window.location.reload();
+      });
+
+      // refresh the page when new updates were installed
+      navigator.serviceWorker.addEventListener('controllerchange', function(){
+        debugger
+        window.location.reload();
       });
 
     }).catch(function(err) {
@@ -114,10 +123,18 @@ IndexController.prototype._onSocketMessage = function(data) {
  * Notify the user about new version of SW
  */
 IndexController.prototype._updateReady = function(){
-  debugger
   var toast = this._toastsView.show("New updates available", {
-    buttons: ['whatever ...']
-  })
+    buttons: ['refresh', 'dismiss']
+  });
+
+  toast.answer.then(function(answer){
+    if (answer != 'refresh') {
+      return;
+    }
+
+    // send message to SW to update itself
+    navigator.serviceWorker.controller.postMessage(answer);
+  });
 };
 
 
@@ -125,8 +142,6 @@ IndexController.prototype._updateReady = function(){
  * Track the progress of installation of SW
  */
 IndexController.prototype._trackInstalling = function(serviceWorker){
-  debugger;
-
   var indexController = this;
 
   serviceWorker.addEventListener('statechange', function(){

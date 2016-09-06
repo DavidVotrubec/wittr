@@ -1,4 +1,4 @@
-const currentVersion = 'v12';
+const currentVersion = 'david_v04';
 
 // Listen for the install event
 self.addEventListener('install', function(event){
@@ -22,6 +22,15 @@ self.addEventListener('install', function(event){
                 'https://fonts.gstatic.com/s/roboto/v15/d-6IYplOFocCacKzxwXSOD8E0i7KZn-EPnyo3HZu7kw.woff',
                 'https://fonts.gstatic.com/s/roboto/v15/2UX7WLTfW3W8TclTUvlFyQ.woff'
             ]);
+        }).then(function(){
+            //
+            // This snippet was copied from https://davidwalsh.name/service-worker-claim
+            //
+            // `skipWaiting()` forces the waiting ServiceWorker to become the
+            // active ServiceWorker, triggering the `onactivate` event.
+            // Together with `Clients.claim()` this allows a worker to take effect
+            // immediately in the client(s)
+            return self.skipWaiting();
         })
     );
 });
@@ -59,15 +68,32 @@ self.addEventListener('activate', function(event){
     const whiteList = [currentVersion];
 
     // pro-long the event's lifetime until cache is cleared
-    event.waitUntil(
-        caches.keys().then(keys => {
+    event.waitUntil(caches.keys().then(keys => {
             return Promise.all(keys.map(key => {
                 if (whiteList.indexOf(key) == -1) {
                     // caches.delete() returns a promise - https://developer.mozilla.org/en-US/docs/Web/API/Cache/delete
                     return caches.delete(key);
                 }
             }));
+        }).then(function(){
+            debugger
+            // take over control of client website(s) 
+            return self.clients.claim();
         })
     );
+    
+});
+
+// Listen for messages
+self.addEventListener('message', function(message) {
+    const action = message.data;
+    debugger
+
+    if (action == 'refresh') {
+        self.skipWaiting().then(() => {
+            // debugger
+            // return self.clients.claim();
+        });
+    }
     
 });
