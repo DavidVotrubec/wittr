@@ -1,14 +1,24 @@
 import idb from 'idb';
 
-var dbPromise = idb.open('test-db', 2, function(upgradeDb) {
+var dbPromise = idb.open('test-db', 4, function(updateDb) {
   // This callback is called when DB instance of that version is created
 
-  switch(upgradeDb.oldVersion) {
+  switch(updateDb.oldVersion) {
+    // The switch for DB update is the only switch where you should NOT use the break statement
     case 0:
-      var keyValStore = upgradeDb.createObjectStore('keyval');
+      var keyValStore = updateDb.createObjectStore('keyval');
       keyValStore.put("world", "hello 1");
     case 1:
-      var peopleStore = upgradeDb.createObjectStore('people', {keyPath: 'name'});
+      updateDb.createObjectStore('people', {keyPath: 'name'});
+    case 2:
+      // create index on people by animal
+      var peopleStore = updateDb.transaction.objectStore('people');
+      // create index named 'animals' by property animal
+      peopleStore.createIndex('animals', 'animal');
+    case 3:
+      // create index on people by age
+      var peopleStore = updateDb.transaction.objectStore('people');
+      peopleStore.createIndex('age', 'age');
   }
   
 });
@@ -91,11 +101,23 @@ dbPromise.then(function(db){
  **/
 dbPromise.then(db => {
   const tx = db.transaction('people');
-  const store = tx.objectStore('people');
+  const peopleStore = tx.objectStore('people');
 
-  return store.getAll(); // promise
+  //return store.getAll(); // promise
+  const animals = peopleStore.index('animals');
+  return animals.getAll(); 
 }).then(people => {
-  console.log('people', people);
+  console.log('people by animals', people);
+});
+
+dbPromise.then(db => {
+  const tx = db.transaction('people');
+  const peopleStore = tx.objectStore('people');
+
+  const peopleByAge = peopleStore.index('age');
+  return peopleByAge.getAll(); 
+}).then(people => {
+  console.log('people by age', people);
 });
 
 // helper function
