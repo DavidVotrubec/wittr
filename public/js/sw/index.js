@@ -1,10 +1,11 @@
-const currentVersion = 'david_v04';
+const currentVersion = 'david_v03';
 
 // Listen for the install event
 self.addEventListener('install', function(event){
     // waitUntil() is a special method which extends the lifetime of an event
     // it is valid only for ServiceWorker, if used elsewhere an Error is thrown
     // https://developer.mozilla.org/en-US/docs/Web/API/ExtendableEvent/waitUntil
+    debugger
     event.waitUntil(
         // create or retrieve named cache
         caches.open(currentVersion).then(cache => {
@@ -22,7 +23,8 @@ self.addEventListener('install', function(event){
                 'https://fonts.gstatic.com/s/roboto/v15/d-6IYplOFocCacKzxwXSOD8E0i7KZn-EPnyo3HZu7kw.woff',
                 'https://fonts.gstatic.com/s/roboto/v15/2UX7WLTfW3W8TclTUvlFyQ.woff'
             ]);
-        }).then(function(){
+        })
+        .then(function(){
             //
             // This snippet was copied from https://davidwalsh.name/service-worker-claim
             //
@@ -30,6 +32,8 @@ self.addEventListener('install', function(event){
             // active ServiceWorker, triggering the `onactivate` event.
             // Together with `Clients.claim()` this allows a worker to take effect
             // immediately in the client(s)
+            //
+            // TODO: I would like to be this optional: It should force update only for security updates
             return self.skipWaiting();
         })
     );
@@ -75,11 +79,12 @@ self.addEventListener('activate', function(event){
                     return caches.delete(key);
                 }
             }));
-        }).then(function(){
-            debugger
-            // take over control of client website(s) 
-            return self.clients.claim();
         })
+        // .then(function(){
+        //     debugger
+        //     // take over control of client website(s) 
+        //     //return self.clients.claim();
+        // })
     );
     
 });
@@ -90,10 +95,7 @@ self.addEventListener('message', function(message) {
     debugger
 
     if (action == 'refresh') {
-        self.skipWaiting().then(() => {
-            // debugger
-            // return self.clients.claim();
-        });
+        self.skipWaiting();
     }
     
 });
