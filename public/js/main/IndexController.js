@@ -1,7 +1,6 @@
 import PostsView from './views/Posts';
 import ToastsView from './views/Toasts';
 import idb from 'idb';
-///
 
 export default function IndexController(container) {
   this._container = container;
@@ -9,6 +8,7 @@ export default function IndexController(container) {
   this._toastsView = new ToastsView(this._container);
   this._lostConnectionToast = null;
   this._openSocket();
+  this._dbPromise = openDatabase();
   this._registerServiceWorker();
 }
 
@@ -116,6 +116,23 @@ IndexController.prototype._openSocket = function() {
 // called when the web socket sends message data
 IndexController.prototype._onSocketMessage = function(data) {
   var messages = JSON.parse(data);
+
+  // store the newly arrived messages in idb
+  this._dbPromise.then(db => {
+    if (!db) {
+      return;
+    }
+
+    const tx = db.transaction('witters', 'readwrite');
+    const store = tx.objectStore('witters');
+    
+    messages.forEach(msg => {
+      store.put(msg);
+    });
+
+    return tx.complete;
+  });
+
   this._postsView.addPosts(messages);
 };
 
@@ -150,3 +167,22 @@ IndexController.prototype._trackInstalling = function(serviceWorker){
     }
   });
 };
+
+function openDatabase(){
+  // If the browser does not support serviceWorker then 
+  // we do not care about database
+  if (!navigator.serviceWorker){
+    return Promise.resolve();
+  }
+
+  // Open a database named 'wittr'  
+  var witterDbPromise = idb.open('wittr', 1, function(updateDb){
+    switch (updateDb.oldVersion) {
+      case 0:
+        var witterStore = updateDb.createObjectStore('witters', {keyPath: 'id'});
+        var witterIndex = witterStore.createIndex('by-date', 'time');
+    }
+  });
+
+  return witterDbPromise;
+}
