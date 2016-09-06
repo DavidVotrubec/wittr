@@ -7,9 +7,14 @@ export default function IndexController(container) {
   this._postsView = new PostsView(this._container);
   this._toastsView = new ToastsView(this._container);
   this._lostConnectionToast = null;
-  this._openSocket();
+  
   this._dbPromise = openDatabase();
   this._registerServiceWorker();
+
+  this._showCachedMessages().then(() => {
+    this._openSocket();
+  })
+  
 }
 
 IndexController.prototype._registerServiceWorker = function(){
@@ -186,3 +191,32 @@ function openDatabase(){
 
   return witterDbPromise;
 }
+
+IndexController.prototype._showCachedMessages = function(){
+  const indexController = this;
+
+  debugger
+
+  // TODO: Try to avoid the callback hell by using yields and co()
+  // TODO: Try to avoid the callback hell by using yields and co()
+  // TODO: Try to avoid the callback hell by using yields and co()
+  // TODO: Try to avoid the callback hell by using yields and co()
+  return this._dbPromise.then(function(db) {
+debugger
+
+    // if there is no DB or we are already showing posts - do nothing
+    //if (! db || indexController._postsView.showingPosts()){
+    if (! db){
+      return;
+    }
+
+    const tx = db.transaction('witters');
+    const store = tx.objectStore('witters');
+    const index = store.index('by-date');
+    
+    return index.getAll().then(witters => {
+      debugger
+      indexController._postsView.addPosts(witters);
+    })
+  });
+};

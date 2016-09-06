@@ -1,6 +1,6 @@
 import idb from 'idb';
 
-const currentVersion = 'david_v04';
+const currentVersion = 'david_v06';
 
 // Listen for the install event
 self.addEventListener('install', function(event){
