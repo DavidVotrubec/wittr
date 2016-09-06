@@ -115,9 +115,19 @@ dbPromise.then(db => {
   const peopleStore = tx.objectStore('people');
 
   const peopleByAge = peopleStore.index('age');
-  return peopleByAge.getAll(); 
-}).then(people => {
-  console.log('people by age', people);
+  return peopleByAge.openCursor(); 
+}).then(function logPerson(personCursor) {
+  
+  if (!personCursor){
+    return;
+  }
+
+  console.log('cursor at', personCursor.value.name, personCursor.value.age);
+
+  // iterative promise
+  return personCursor.continue().then(logPerson);
+}).then(() => {
+  console.log('All people logged');
 });
 
 // helper function
