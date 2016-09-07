@@ -120,7 +120,8 @@ IndexController.prototype._openSocket = function() {
 
 // called when the web socket sends message data
 IndexController.prototype._onSocketMessage = function(data) {
-  var messages = JSON.parse(data);
+  const messages = JSON.parse(data);
+  const max = 30;
 
   // store the newly arrived messages in idb
   this._dbPromise.then(db => {
@@ -130,12 +131,24 @@ IndexController.prototype._onSocketMessage = function(data) {
 
     const tx = db.transaction('witters', 'readwrite');
     const store = tx.objectStore('witters');
+    const index = store.index('by-date');
     
     messages.forEach(msg => {
       store.put(msg);
     });
 
-    return tx.complete;
+    index.openCursor(null, 'prev').then((cursor) => {
+      // Skip N first items, then delete the rest
+      return cursor.advance(max);
+    }).then(function deleteRest(cursor) {
+      if (!cursor){
+        return;
+      }
+
+      cursor.delete();
+      // iterativally delete all items
+      return cursor.continue().then(deleteRest);
+    });    
   });
 
   this._postsView.addPosts(messages);
@@ -195,14 +208,11 @@ function openDatabase(){
 IndexController.prototype._showCachedMessages = function(){
   const indexController = this;
 
-  debugger
-
   // TODO: Try to avoid the callback hell by using yields and co()
   // TODO: Try to avoid the callback hell by using yields and co()
   // TODO: Try to avoid the callback hell by using yields and co()
   // TODO: Try to avoid the callback hell by using yields and co()
   return this._dbPromise.then(function(db) {
-debugger
 
     // if there is no DB or we are already showing posts - do nothing
     //if (! db || indexController._postsView.showingPosts()){
@@ -210,13 +220,10 @@ debugger
       return;
     }
 
-    const tx = db.transaction('witters');
-    const store = tx.objectStore('witters');
-    const index = store.index('by-date');
+    const index = db.transaction('witters').objectStore('witters').index('by-date');    
     
     return index.getAll().then(witters => {
-      debugger
-      indexController._postsView.addPosts(witters);
+      indexController._postsView.addPosts(witters.reverse());
     })
   });
 };
